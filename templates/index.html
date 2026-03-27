@@ -522,12 +522,28 @@
 
     <script>
         // --- 1. Core Models & Physics Constants ---
+        // Sellmeier coefficients: Schott Optical Glass Catalogue (2023 edition)
+        // Cross-referenced with refractiveindex.info (M. Polyanskiy database)
+        // Formula: n²(λ) = 1 + B1·λ²/(λ²−C1) + B2·λ²/(λ²−C2) + B3·λ²/(λ²−C3), λ in µm
         const Catalogs = {
             'Air': null,
-            'BK7': { B1: 1.03961212, B2: 0.231792344, B3: 1.01046945, C1: 0.00600069867, C2: 0.0200179144, C3: 103.560653 },
-            'F2': { B1: 1.34533359, B2: 0.209073176, B3: 0.937357162, C1: 0.00997743871, C2: 0.0470450767, C3: 111.886764 },
-            'SF11': { B1: 1.73759695, B2: 0.313747346, B3: 1.89878101, C1: 0.013188707, C2: 0.0623068156, C3: 155.23629 },
-            'FusedSilica': { B1: 0.6961663, B2: 0.4079426, B3: 0.8974794, C1: 0.004679148, C2: 0.01351206, C3: 97.93400 }
+            // Crown (低分散) ---
+            'N-BK7':        { B1: 1.03961212,  B2: 0.231792344, B3: 1.01046945,  C1: 0.00600069867, C2: 0.0200179144, C3: 103.560653 },   // nd=1.5168, Vd=64.17
+            'N-FK51A':      { B1: 0.971247817, B2: 0.216901417, B3: 0.904651666, C1: 0.00472301995, C2: 0.0153575612, C3: 168.68133  },   // nd=1.4866, Vd=84.47 (異常分散)
+            'N-SK16':       { B1: 1.34317774,  B2: 0.241144399, B3: 0.994317969, C1: 0.00704687339, C2: 0.0229005,    C3: 92.7508526 },  // nd=1.6204, Vd=60.32
+            'N-LAK9':       { B1: 1.46231905,  B2: 0.344239710, B3: 1.15508372,  C1: 0.00724270156, C2: 0.0243353131, C3: 85.4686868 },  // nd=1.6910, Vd=54.71
+            'N-BAF10':      { B1: 1.5851495,   B2: 0.143559385, B3: 1.08521269,  C1: 0.00926681282, C2: 0.0424489805, C3: 105.613573 },  // nd=1.6700, Vd=47.11
+            // Flint (高分散) ---
+            'N-F2':         { B1: 1.34533359,  B2: 0.209073176, B3: 0.937357162, C1: 0.00997743871, C2: 0.0470450767, C3: 111.886764 },  // nd=1.6200, Vd=36.37
+            'N-SF2':        { B1: 1.47343127,  B2: 0.163681849, B3: 1.36920899,  C1: 0.0109019098,  C2: 0.0585683687, C3: 127.404933 },  // nd=1.6477, Vd=33.82
+            'N-SF6':        { B1: 1.77931763,  B2: 0.338149866, B3: 2.08734474,  C1: 0.0133714182,  C2: 0.0617533621, C3: 174.01759  },  // nd=1.8052, Vd=25.36
+            'N-SF11':       { B1: 1.73759695,  B2: 0.313747346, B3: 1.89878101,  C1: 0.013188707,   C2: 0.0623068156, C3: 155.23629  },  // nd=1.7847, Vd=25.68
+            // High-Index Lanthanum (高屈折率ランタン系) ---
+            'N-LAF2':       { B1: 1.80984227,  B2: 0.156621908, B3: 1.09123929,  C1: 0.00963842622, C2: 0.0443049296, C3: 97.9975834 },  // nd=1.7440, Vd=44.85
+            'N-LASF9':      { B1: 2.00029547,  B2: 0.298926886, B3: 1.80691843,  C1: 0.0121426017,  C2: 0.0538736236, C3: 156.530829 },  // nd=1.8503, Vd=32.17
+            'N-LASF44':     { B1: 1.78897105,  B2: 0.38675867,  B3: 1.30506243,  C1: 0.00872810026, C2: 0.0308085023, C3: 92.7743824 },  // nd=1.8042, Vd=46.50
+            // Special ---
+            'FusedSilica':  { B1: 0.6961663,   B2: 0.4079426,   B3: 0.8974794,   C1: 0.004679148,   C2: 0.01351206,   C3: 97.93400   }   // nd=1.4585, Vd=67.82 (Malitson 1965)
         };
 
         function getRefractiveIndex(matName, wl_nm) {
@@ -567,13 +583,13 @@
         // Single source of truth state
         const state = {
             surfaces: [
-                new Surface(1, 60, 15, 'BK7', 30, 0),
+                new Surface(1, 60, 15, 'N-BK7', 30, 0),
                 new Surface(2, -50, 5, 'Air', 30, 0),
-                new Surface(3, -40, 6, 'F2', 30, 0),
+                new Surface(3, -40, 6, 'N-F2', 30, 0),
                 new Surface(4, 200, 40, 'Air', 30, 0)
             ],
             source: { z: -100, y: 0, height: 30, angle: 0, rays: 21 },
-            optics: { rgbMode: false, wavelength: 550.0 }, // 300-2000nm
+            optics: { rgbMode: false, wavelength: 550.0 }, // 380-700nm (可視光域)
             nextId: 5,
             viewFlags: { lenses: true, rays: true, axis: true, anchorLock: true },
 
@@ -770,9 +786,9 @@
                     html += `<div class="result-item"><span>C (656nm) Red Focus:</span><span class="result-val res-red">${focalZ[656.3].toFixed(2)} mm</span></div>`;
                     html += `<div class="result-item" style="border:none; margin-top:8px;"><span>Axial Chromatic Aberration:</span><span class="result-val">${lca.toFixed(3)} mm</span></div>`;
                 } else if (!state.optics.rgbMode && focalZ[state.optics.wavelength]) {
-                    let n_bk7 = getRefractiveIndex('BK7', state.optics.wavelength).toFixed(4);
+                    let n_bk7 = getRefractiveIndex('N-BK7', state.optics.wavelength).toFixed(4);
                     html += `<div class="result-item"><span>Marginal Focus Z Crossing:</span><span class="result-val">${focalZ[state.optics.wavelength].toFixed(2)} mm</span></div>`;
-                    html += `<div class="result-item" style="border:none; margin-top:8px;"><span style="color:var(--text-muted)">BK7 Refractive Index (n):</span><span class="result-val" style="color:var(--text-muted)">${n_bk7}</span></div>`;
+                    html += `<div class="result-item" style="border:none; margin-top:8px;"><span style="color:var(--text-muted)">N-BK7 Refractive Index (n):</span><span class="result-val" style="color:var(--text-muted)">${n_bk7}</span></div>`;
                 } else {
                     html += `<div class="result-item"><span style="color:var(--text-muted)">Paraxial focal point not found.</span></div>`;
                 }
@@ -978,7 +994,7 @@
             if (state.optics.rgbMode) {
                 c.innerHTML = `<div style="font-size:11px; color:var(--text-muted); line-height:1.5;">Simulating Fraunhofer lines:<br><span style="color:#93C5FD">■ F-line (Blue): 486.1 nm</span><br><span style="color:#86EFAC">■ d-line (Green): 587.6 nm</span><br><span style="color:#FCA5A5">■ C-line (Red): 656.3 nm</span></div>`;
             } else {
-                c.innerHTML = PrecisionUI.createSlider('Wavelength (λ)', 'optics', 'wavelength', 300, 2000, 'nm', 1.0, false, "spectrum");
+                c.innerHTML = PrecisionUI.createSlider('Wavelength (λ)', 'optics', 'wavelength', 380, 700, 'nm', 1.0, false, "spectrum");
             }
         }
 
@@ -1041,10 +1057,21 @@
                     }
                     p2D.closePath();
                     const colors = {
-                        'BK7': { f: 'rgba(56,189,248,0.1)', s: 'rgba(56,189,248,0.6)' }, 'F2': { f: 'rgba(167,139,250,0.1)', s: 'rgba(167,139,250,0.6)' },
-                        'FusedSilica': { f: 'rgba(52,211,153,0.1)', s: 'rgba(52,211,153,0.6)' }, 'SF11': { f: 'rgba(232,121,249,0.1)', s: 'rgba(232,121,249,0.6)' }
+                        'N-BK7':  { f: 'rgba(56,189,248,0.1)',  s: 'rgba(56,189,248,0.6)' },
+                        'N-FK51A':{ f: 'rgba(99,226,200,0.1)',  s: 'rgba(99,226,200,0.6)' },
+                        'N-SK16': { f: 'rgba(96,165,250,0.1)',  s: 'rgba(96,165,250,0.6)' },
+                        'N-LAK9': { f: 'rgba(129,140,248,0.1)', s: 'rgba(129,140,248,0.6)' },
+                        'N-BAF10':{ f: 'rgba(251,191,36,0.1)',  s: 'rgba(251,191,36,0.6)' },
+                        'N-F2':   { f: 'rgba(167,139,250,0.1)', s: 'rgba(167,139,250,0.6)' },
+                        'N-SF2':  { f: 'rgba(244,114,182,0.1)', s: 'rgba(244,114,182,0.6)' },
+                        'N-SF6':  { f: 'rgba(248,113,113,0.1)', s: 'rgba(248,113,113,0.6)' },
+                        'N-SF11': { f: 'rgba(232,121,249,0.1)', s: 'rgba(232,121,249,0.6)' },
+                        'N-LAF2': { f: 'rgba(253,186,116,0.1)', s: 'rgba(253,186,116,0.6)' },
+                        'N-LASF9':{ f: 'rgba(252,165,165,0.1)', s: 'rgba(252,165,165,0.6)' },
+                        'N-LASF44':{ f:'rgba(216,180,254,0.1)', s: 'rgba(216,180,254,0.6)' },
+                        'FusedSilica': { f: 'rgba(52,211,153,0.1)', s: 'rgba(52,211,153,0.6)' }
                     };
-                    const col = colors[s1.materialName];
+                    const col = colors[s1.materialName] || { f: 'rgba(148,163,184,0.1)', s: 'rgba(148,163,184,0.6)' };
                     ctx.fillStyle = col.f; ctx.fill(p2D); ctx.strokeStyle = col.s; ctx.lineWidth = 1 * window.devicePixelRatio; ctx.stroke(p2D);
 
                     // Draw Decenter Axis if offset > 0
