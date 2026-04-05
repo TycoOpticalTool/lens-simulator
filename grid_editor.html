@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grid Editor — CSV Matrix Tool</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans+JP:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0e0f11;
+    --surface: #161719;
+    --surface2: #1e2024;
+    --border: #2a2d33;
+    --border-bright: #3d4149;
+    --accent: #00d4aa;
+    --accent2: #ff6b35;
+    --accent3: #7c6bff;
+    --text: #e8eaed;
+    --text-muted: #6b7280;
+    --text-dim: #9ca3af;
+    --cell-hover: rgba(0,212,170,0.08);
+    --cell-active: rgba(0,212,170,0.15);
+    --cell-selected: rgba(0,212,170,0.2);
+    --header-bg: #12141a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans JP', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* HEADER */
+  header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: var(--header-bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .logo span { color: var(--text-muted); font-weight: 300; }
+
+  .header-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+  }
+
+  .header-info {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    gap: 16px;
+  }
+
+  .info-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .info-badge .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+  .info-badge.active .dot { background: var(--accent); }
+
+  .header-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    padding: 6px 14px;
+    border: 1px solid var(--border-bright);
+    border-radius: 4px;
+    background: var(--surface2);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,212,170,0.05);
+  }
+  .btn.primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .btn.primary:hover {
+    background: #00f0c0;
+    color: #000;
+  }
+  .btn.danger:hover {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    background: rgba(255,107,53,0.05);
+  }
+
+  /* TOOLBAR */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toolbar-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .coord-input-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+  }
+  .coord-input-group span { color: var(--text-muted); }
+  .coord-input-group input {
+    width: 50px;
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    text-align: center;
+  }
+
+  .value-input-group {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .value-input-group input {
+    background: var(--surface2);
+    border: none;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 5px 10px;
+    width: 120px;
+    outline: none;
+  }
+  .value-input-group input:focus {
+    background: rgba(0,212,170,0.05);
+  }
+  .value-input-group .apply-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .value-input-group .apply-btn:hover { background: #00f0c0; }
+
+  .status-pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 100px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+  .status-pill.highlight {
+    border-color: var(--accent3);
+    color: var(--accent3);
+  }
+
+  /* MAIN AREA */
+  main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* DROP ZONE */
+  #dropzone {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 40px;
+  }
+
+  .drop-icon {
+    width: 72px; height: 72px;
+    border: 2px dashed var(--border-bright);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    transition: all 0.2s;
+  }
+  #dropzone.drag-over .drop-icon {
+    border-color: var(--accent);
+    background: rgba(0,212,170,0.08);
+  }
+
+  .drop-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text);
+    text-align: center;
+  }
+  .drop-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .file-input-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 10px 24px;
+    border-radius: 6px;
+    background: var(--accent);
+    color: #000;
+    cursor: pointer;
+    transition: background 0.15s;
+    letter-spacing: 0.05em;
+  }
+  .file-input-label:hover { background: #00f0c0; }
+  #fileInput { display: none; }
+
+  .demo-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .demo-btn:hover { color: var(--accent3); border-color: var(--accent3); }
+
+  /* GRID WRAPPER */
+  #gridWrapper {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .grid-scroll {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+  }
+
+  table {
+    border-collapse: collapse;
+    position: relative;
+  }
+
+  /* CORNER CELL */
+  .corner-cell {
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 30;
+    background: var(--header-bg);
+    border-right: 2px solid var(--border-bright);
+    border-bottom: 2px solid var(--border-bright);
+    min-width: 56px;
+    height: 28px;
+  }
+
+  /* COLUMN HEADERS */
+  th.col-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--header-bg);
+    border-bottom: 2px solid var(--border-bright);
+    border-right: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 0 8px;
+    height: 28px;
+    min-width: 80px;
+    user-select: none;
+    cursor: default;
+    letter-spacing: 0.05em;
+    transition: color 0.15s;
+  }
+  th.col-header:hover { color: var(--accent); }
+  th.col-header.selected {
+    color: var(--accent);
+    background: rgba(0,212,170,0.06);
+  }
+
+  /* ROW HEADERS */
+  td.row-header {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    background: var(--header-bg);
+    border-right: 2px solid var(--border-bright);
+    border-bottom: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-align: right;
+    padding: 0 10px;
+    height: 26px;
+    min-width: 56px;
+    user-select: none;
+    letter-spacing: 0.05em;
+    transition: color 0.15s;
+  }
+  td.row-header.selected {
+    color: var(--accent);
+    background: rgba(0,212,170,0.06);
+  }
+
+  /* DATA CELLS */
+  td.data-cell {
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    text-align: right;
+    padding: 0 8px;
+    height: 26px;
+    min-width: 80px;
+    cursor: cell;
+    transition: background 0.1s;
+    white-space: nowrap;
+  }
+  td.data-cell:hover {
+    background: var(--cell-hover);
+    color: var(--accent);
+  }
+  td.data-cell.selected {
+    background: var(--cell-selected) !important;
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Inline editor */
+  td.data-cell.editing {
+    padding: 0;
+    outline: 2px solid var(--accent2);
+    outline-offset: -2px;
+    background: rgba(255,107,53,0.08) !important;
+  }
+  td.data-cell.editing input {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: var(--accent2);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: right;
+    padding: 0 8px;
+    outline: none;
+    display: block;
+  }
+
+  /* Modified cells */
+  td.data-cell.modified::after {
+    content: '';
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--accent2);
+  }
+  td.data-cell.modified { position: relative; }
+
+  /* PANEL (right side info) */
+  #panel {
+    width: 220px;
+    min-width: 220px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    padding: 16px;
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+  }
+
+  .panel-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .panel-section-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-kv {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+  }
+  .panel-kv .key { color: var(--text-muted); }
+  .panel-kv .val { color: var(--accent); font-weight: 500; }
+
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .history-item {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    padding: 4px 8px;
+    background: var(--surface2);
+    border-radius: 3px;
+    border-left: 2px solid var(--border-bright);
+    line-height: 1.5;
+  }
+  .history-item .h-coord { color: var(--accent3); }
+  .history-item .h-arrow { color: var(--text-muted); }
+  .history-item .h-new { color: var(--accent2); }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+  /* NOTIFICATIONS */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .toast-msg {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 10px 16px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    animation: toastIn 0.2s ease, toastOut 0.3s ease 2.5s forwards;
+    pointer-events: none;
+  }
+  .toast-msg.success { border-color: var(--accent); color: var(--accent); }
+  .toast-msg.error { border-color: var(--accent2); color: var(--accent2); }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes toastOut {
+    to { opacity: 0; transform: translateY(-4px); }
+  }
+
+  /* EXPORT MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    padding: 28px 28px 22px;
+    width: 360px;
+    display: flex; flex-direction: column; gap: 18px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+  }
+  .modal-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.05em;
+  }
+  .modal-field {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .modal-field label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .modal-filename-row {
+    display: flex; gap: 0;
+    border: 1px solid var(--border-bright);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .modal-filename-row input {
+    flex: 1;
+    background: var(--surface2);
+    border: none;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    padding: 8px 12px;
+    outline: none;
+  }
+  .modal-filename-row input:focus { background: rgba(0,212,170,0.05); }
+  .modal-ext-select {
+    background: var(--header-bg);
+    border: none;
+    border-left: 1px solid var(--border-bright);
+    color: var(--accent);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    padding: 8px 10px;
+    outline: none;
+    cursor: pointer;
+  }
+  .modal-actions {
+    display: flex; gap: 8px; justify-content: flex-end;
+  }
+
+  /* Keyboard shortcut hints */
+  .shortcut-hint {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    padding: 10px 24px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: none;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .shortcut-hint.visible { display: flex; }
+  .shortcut-hint kbd {
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">GRID<span>/</span>EDITOR</div>
+  <div class="header-divider"></div>
+  <div class="header-info">
+    <div class="info-badge" id="sizeInfo"><div class="dot"></div><span id="sizeText">未ロード</span></div>
+    <div class="info-badge" id="modInfo"><div class="dot"></div><span id="modText">変更なし</span></div>
+  </div>
+  <div class="header-actions">
+    <button class="btn" id="clearBtn" style="display:none" onclick="clearData()">クリア</button>
+    <button class="btn" id="undoBtn" style="display:none" onclick="undo()">↩ 元に戻す</button>
+    <button class="btn primary" id="exportBtn" style="display:none" onclick="exportCSV()">保存 / エクスポート</button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-group">
+    <span class="toolbar-label">座標指定</span>
+    <div class="coord-input-group">
+      <span>行</span>
+      <input type="number" id="coordRow" min="0" placeholder="0">
+      <span style="margin:0 2px;color:var(--border-bright)">×</span>
+      <span>列</span>
+      <input type="number" id="coordCol" min="0" placeholder="0">
+    </div>
+    <button class="btn" onclick="gotoCoord()">移動</button>
+  </div>
+  <div class="header-divider" style="height:20px;width:1px;background:var(--border);"></div>
+  <div class="toolbar-group">
+    <span class="toolbar-label">値を変更</span>
+    <div class="value-input-group">
+      <input type="text" id="valueInput" placeholder="新しい値">
+      <button class="apply-btn" onclick="applyValue()">適用</button>
+    </div>
+  </div>
+  <div class="status-pill" id="cellStatus">セル未選択</div>
+</div>
+
+<main>
+  <!-- DROP ZONE -->
+  <div id="dropzone">
+    <div class="drop-icon">📂</div>
+    <div class="drop-title">CSVファイルを読み込む</div>
+    <div class="drop-sub">
+      ドラッグ＆ドロップ<br>
+      または下のボタンからファイルを選択
+    </div>
+    <label class="file-input-label">
+      ファイルを選択
+      <input type="file" id="fileInput" accept=".csv,.txt" onchange="loadFile(this.files[0])">
+    </label>
+    <button class="demo-btn" onclick="loadDemo()">デモデータで試す</button>
+  </div>
+
+  <!-- GRID WRAPPER -->
+  <div id="gridWrapper">
+    <div class="grid-scroll" id="gridScroll">
+      <table id="gridTable"></table>
+    </div>
+    <div id="panel">
+      <div class="panel-section">
+        <div class="panel-section-title">選択セル</div>
+        <div class="panel-kv"><span class="key">座標</span><span class="val" id="pCoord">—</span></div>
+        <div class="panel-kv"><span class="key">現在値</span><span class="val" id="pVal">—</span></div>
+        <div class="panel-kv"><span class="key">元の値</span><span class="val" id="pOrig" style="color:var(--text-muted)">—</span></div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-section-title">データ情報</div>
+        <div class="panel-kv"><span class="key">行数</span><span class="val" id="pRows">—</span></div>
+        <div class="panel-kv"><span class="key">列数</span><span class="val" id="pCols">—</span></div>
+        <div class="panel-kv"><span class="key">変更数</span><span class="val" id="pMods" style="color:var(--accent2)">0</span></div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-section-title">変更履歴</div>
+        <div class="history-list" id="historyList">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted)">まだ変更なし</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="shortcut-hint" id="shortcutHint">
+  <span><kbd>クリック</kbd> セル選択・ダブルクリックで編集</span>
+  <span><kbd>Enter</kbd> 値確定・下に移動</span>
+  <span><kbd>Tab</kbd> 右に移動</span>
+  <span><kbd>矢印キー</kbd> 移動</span>
+  <span><kbd>Esc</kbd> キャンセル</span>
+  <span><kbd>Ctrl+Z</kbd> 元に戻す</span>
+  <span><kbd>Ctrl+S</kbd> 保存</span>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay hidden" id="exportModal">
+  <div class="modal">
+    <div class="modal-title">📥 ファイルを保存</div>
+    <div class="modal-field">
+      <label>ファイル名と形式</label>
+      <div class="modal-filename-row">
+        <input type="text" id="exportFileName" placeholder="ファイル名">
+        <select class="modal-ext-select" id="exportExt">
+          <option value=".csv">.csv</option>
+          <option value=".txt">.txt</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeExportModal()">キャンセル</button>
+      <button class="btn primary" onclick="doExport()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  let data = [];            // 2D array of strings
+  let originalData = [];   // deep copy for diff
+  let modifiedCells = new Set();
+  let history = [];
+  let selectedRow = -1, selectedCol = -1;
+  let editingCell = null;
+  let fileName = 'export.csv';
+  let separator = ',';
+
+  // ── LOAD FILE ──────────────────────────────────────────────────
+  function loadFile(file) {
+    if (!file) return;
+    fileName = file.name;
+    const reader = new FileReader();
+    reader.onload = e => parseCSV(e.target.result);
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function parseCSV(text) {
+    // Auto-detect separator
+    const line1 = text.split('\n')[0];
+    separator = line1.includes('\t') ? '\t' : ',';
+
+    const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+    // Remove trailing empty lines
+    while (lines.length && !lines[lines.length-1].trim()) lines.pop();
+
+    if (!lines.length) { toast('空のファイルです', 'error'); return; }
+
+    data = lines.map(l => l.split(separator));
+
+    // Normalize column count
+    const maxCols = Math.max(...data.map(r => r.length));
+    data = data.map(r => { while(r.length < maxCols) r.push(''); return r; });
+
+    originalData = data.map(r => [...r]);
+    modifiedCells.clear();
+    history = [];
+    renderGrid();
+    toast(`読み込み完了 — ${data.length} 行 × ${data[0].length} 列`, 'success');
+  }
+
+  function loadDemo() {
+    const rows = 20, cols = 15;
+    let csv = '';
+    for (let r = 0; r < rows; r++) {
+      csv += Array.from({length: cols}, () => (Math.random()*100).toFixed(2)).join(',') + '\n';
+    }
+    fileName = 'demo.csv';
+    parseCSV(csv);
+  }
+
+  function clearData() {
+    data = []; originalData = []; modifiedCells.clear(); history = [];
+    document.getElementById('gridWrapper').style.display = 'none';
+    document.getElementById('dropzone').style.display = 'flex';
+    document.getElementById('panel').style.display = 'none';
+    document.getElementById('shortcutHint').classList.remove('visible');
+    document.getElementById('exportBtn').style.display = 'none';
+    document.getElementById('clearBtn').style.display = 'none';
+    document.getElementById('undoBtn').style.display = 'none';
+    document.getElementById('sizeText').textContent = '未ロード';
+    document.getElementById('modText').textContent = '変更なし';
+    document.getElementById('modInfo').classList.remove('active');
+  }
+
+  // ── RENDER ─────────────────────────────────────────────────────
+  function renderGrid() {
+    const table = document.getElementById('gridTable');
+    const frag = document.createDocumentFragment();
+    const nRows = data.length, nCols = data[0].length;
+
+    // Header row
+    const thead = document.createElement('thead');
+    const hrw = document.createElement('tr');
+    const corner = document.createElement('th');
+    corner.className = 'corner-cell';
+    hrw.appendChild(corner);
+    for (let c = 0; c < nCols; c++) {
+      const th = document.createElement('th');
+      th.className = 'col-header';
+      th.textContent = c;
+      th.dataset.col = c;
+      hrw.appendChild(th);
+    }
+    thead.appendChild(hrw);
+    frag.appendChild(thead);
+
+    // Body
+    const tbody = document.createElement('tbody');
+    for (let r = 0; r < nRows; r++) {
+      const tr = document.createElement('tr');
+      const rh = document.createElement('td');
+      rh.className = 'row-header';
+      rh.textContent = r;
+      rh.dataset.row = r;
+      tr.appendChild(rh);
+      for (let c = 0; c < nCols; c++) {
+        const td = document.createElement('td');
+        td.className = 'data-cell';
+        td.textContent = data[r][c];
+        td.dataset.row = r;
+        td.dataset.col = c;
+        td.addEventListener('click', e => selectCell(r, c, td));
+        td.addEventListener('dblclick', e => startEdit(r, c, td));
+        if (modifiedCells.has(`${r},${c}`)) td.classList.add('modified');
+        tbody.appendChild(tr);
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+    frag.appendChild(tbody);
+
+    table.innerHTML = '';
+    table.appendChild(frag);
+
+    // Show grid
+    document.getElementById('dropzone').style.display = 'none';
+    document.getElementById('gridWrapper').style.display = 'flex';
+    document.getElementById('panel').style.display = 'flex';
+    document.getElementById('shortcutHint').classList.add('visible');
+    document.getElementById('exportBtn').style.display = '';
+    document.getElementById('clearBtn').style.display = '';
+
+    document.getElementById('sizeText').textContent = `${nRows}行 × ${nCols}列`;
+    document.getElementById('pRows').textContent = nRows;
+    document.getElementById('pCols').textContent = nCols;
+    updateModCount();
+  }
+
+  // ── SELECT / EDIT ───────────────────────────────────────────────
+  function selectCell(r, c, td) {
+    if (editingCell && editingCell !== td) commitEdit(editingCell);
+    clearSelection();
+    selectedRow = r; selectedCol = c;
+
+    td.classList.add('selected');
+    highlightHeaders(r, c);
+
+    // Panel update
+    document.getElementById('pCoord').textContent = `(${r}, ${c})`;
+    document.getElementById('pVal').textContent = data[r][c];
+    document.getElementById('pOrig').textContent = originalData[r][c];
+
+    // Toolbar coord
+    document.getElementById('coordRow').value = r;
+    document.getElementById('coordCol').value = c;
+    document.getElementById('valueInput').value = data[r][c];
+    document.getElementById('cellStatus').textContent = `[${r}, ${c}] = ${data[r][c]}`;
+    document.getElementById('cellStatus').classList.add('highlight');
+  }
+
+  function clearSelection() {
+    document.querySelectorAll('.data-cell.selected').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('.col-header.selected, .row-header.selected').forEach(el => el.classList.remove('selected'));
+    document.getElementById('cellStatus').textContent = 'セル未選択';
+    document.getElementById('cellStatus').classList.remove('highlight');
+  }
+
+  function highlightHeaders(r, c) {
+    document.querySelectorAll('.col-header').forEach(th => {
+      if (parseInt(th.dataset.col) === c) th.classList.add('selected');
+    });
+    document.querySelectorAll('.row-header').forEach(td => {
+      if (parseInt(td.dataset.row) === r) td.classList.add('selected');
+    });
+  }
+
+  function getCellTD(r, c) {
+    return document.querySelector(`td.data-cell[data-row="${r}"][data-col="${c}"]`);
+  }
+
+  function startEdit(r, c, td) {
+    if (editingCell) commitEdit(editingCell);
+    editingCell = td;
+    td.classList.add('editing');
+    const val = td.textContent;
+    td.innerHTML = '';
+    const inp = document.createElement('input');
+    inp.value = val;
+    inp.type = 'text';
+    td.appendChild(inp);
+    inp.focus();
+    inp.select();
+
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { commitEdit(td); moveSelection(1, 0); e.preventDefault(); }
+      else if (e.key === 'Tab') { commitEdit(td); moveSelection(0, 1); e.preventDefault(); }
+      else if (e.key === 'Escape') { cancelEdit(td, r, c); e.preventDefault(); }
+    });
+    inp.addEventListener('blur', () => { if (editingCell === td) commitEdit(td); });
+  }
+
+  function commitEdit(td) {
+    if (!td || !td.classList.contains('editing')) return;
+    const r = parseInt(td.dataset.row), c = parseInt(td.dataset.col);
+    const inp = td.querySelector('input');
+    const newVal = inp ? inp.value : td.textContent;
+    const oldVal = data[r][c];
+
+    td.classList.remove('editing');
+    editingCell = null;
+
+    if (newVal !== oldVal) {
+      recordHistory(r, c, oldVal, newVal);
+      data[r][c] = newVal;
+      modifiedCells.add(`${r},${c}`);
+      td.classList.add('modified');
+      updateModCount();
+    }
+    td.textContent = data[r][c];
+    if (selectedRow === r && selectedCol === c) {
+      td.classList.add('selected');
+      document.getElementById('pVal').textContent = data[r][c];
+      document.getElementById('valueInput').value = data[r][c];
+      document.getElementById('cellStatus').textContent = `[${r}, ${c}] = ${data[r][c]}`;
+    }
+  }
+
+  function cancelEdit(td, r, c) {
+    td.classList.remove('editing');
+    td.textContent = data[r][c];
+    editingCell = null;
+    if (selectedRow === r && selectedCol === c) td.classList.add('selected');
+  }
+
+  // ── COORD / VALUE TOOLBAR ────────────────────────────────────────
+  function gotoCoord() {
+    const r = parseInt(document.getElementById('coordRow').value);
+    const c = parseInt(document.getElementById('coordCol').value);
+    if (isNaN(r) || isNaN(c) || r < 0 || r >= data.length || c < 0 || c >= data[0].length) {
+      toast('座標が範囲外です', 'error'); return;
+    }
+    const td = getCellTD(r, c);
+    if (td) {
+      selectCell(r, c, td);
+      td.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    }
+  }
+
+  function applyValue() {
+    if (selectedRow < 0 || selectedCol < 0) { toast('セルを選択してください', 'error'); return; }
+    const newVal = document.getElementById('valueInput').value;
+    const oldVal = data[selectedRow][selectedCol];
+    if (newVal === oldVal) return;
+    recordHistory(selectedRow, selectedCol, oldVal, newVal);
+    data[selectedRow][selectedCol] = newVal;
+    modifiedCells.add(`${selectedRow},${selectedCol}`);
+    const td = getCellTD(selectedRow, selectedCol);
+    if (td) { td.textContent = newVal; td.classList.add('modified'); }
+    document.getElementById('pVal').textContent = newVal;
+    document.getElementById('cellStatus').textContent = `[${selectedRow}, ${selectedCol}] = ${newVal}`;
+    updateModCount();
+    toast(`(${selectedRow}, ${selectedCol}) を更新しました`, 'success');
+  }
+
+  // ── HISTORY / UNDO ───────────────────────────────────────────────
+  function recordHistory(r, c, oldVal, newVal) {
+    history.push({ r, c, oldVal, newVal });
+    document.getElementById('undoBtn').style.display = '';
+    const list = document.getElementById('historyList');
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerHTML = `<span class="h-coord">(${r},${c})</span> <span class="h-arrow">${oldVal} →</span> <span class="h-new">${newVal}</span>`;
+    if (list.children.length === 1 && list.firstElementChild.style && list.firstElementChild.tagName === 'DIV') {
+      const first = list.firstElementChild;
+      if (first.textContent.includes('まだ変更なし')) list.innerHTML = '';
+    }
+    list.insertBefore(item, list.firstChild);
+    document.getElementById('pMods').textContent = modifiedCells.size;
+  }
+
+  function undo() {
+    if (!history.length) return;
+    const last = history.pop();
+    data[last.r][last.c] = last.oldVal;
+    if (data[last.r][last.c] === originalData[last.r][last.c]) {
+      modifiedCells.delete(`${last.r},${last.c}`);
+      const td = getCellTD(last.r, last.c);
+      if (td) td.classList.remove('modified');
+    }
+    const td = getCellTD(last.r, last.c);
+    if (td) td.textContent = data[last.r][last.c];
+    if (selectedRow === last.r && selectedCol === last.c) {
+      document.getElementById('pVal').textContent = data[last.r][last.c];
+      document.getElementById('valueInput').value = data[last.r][last.c];
+    }
+    // Remove from history list UI
+    const list = document.getElementById('historyList');
+    if (list.firstChild) list.removeChild(list.firstChild);
+    if (!list.children.length) {
+      list.innerHTML = '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:var(--text-muted)">まだ変更なし</div>';
+    }
+    updateModCount();
+    if (!history.length) document.getElementById('undoBtn').style.display = 'none';
+    toast('変更を元に戻しました');
+  }
+
+  function updateModCount() {
+    const n = modifiedCells.size;
+    document.getElementById('pMods').textContent = n;
+    document.getElementById('modText').textContent = n ? `${n}件変更済み` : '変更なし';
+    document.getElementById('modInfo').classList.toggle('active', n > 0);
+  }
+
+  // ── NAVIGATION ──────────────────────────────────────────────────
+  function moveSelection(dr, dc) {
+    const nr = selectedRow + dr, nc = selectedCol + dc;
+    if (nr < 0 || nr >= data.length || nc < 0 || nc >= data[0].length) return;
+    const td = getCellTD(nr, nc);
+    if (td) selectCell(nr, nc, td);
+  }
+
+  // ── EXPORT ──────────────────────────────────────────────────────
+  function exportCSV() {
+    if (!data.length) return;
+    // ファイル名・拡張子をモーダルで設定
+    const base = fileName.replace(/\.(csv|txt)$/i, '');
+    const ext  = fileName.match(/\.(csv|txt)$/i) ? fileName.match(/\.(csv|txt)$/i)[0].toLowerCase() : '.csv';
+    document.getElementById('exportFileName').value = base;
+    document.getElementById('exportExt').value = ext;
+    document.getElementById('exportModal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('exportFileName').focus(), 50);
+  }
+
+  function closeExportModal() {
+    document.getElementById('exportModal').classList.add('hidden');
+  }
+
+  function doExport() {
+    const base = document.getElementById('exportFileName').value.trim() || 'export';
+    const ext  = document.getElementById('exportExt').value;
+    const outName = base + ext;
+    const content = data.map(r => r.join(separator)).join('\n');
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = outName;
+    a.click();
+    URL.revokeObjectURL(url);
+    fileName = outName;
+    closeExportModal();
+    toast(`"${outName}" を保存しました`, 'success');
+  }
+
+  // ── TOAST ───────────────────────────────────────────────────────
+  function toast(msg, type = '') {
+    const el = document.createElement('div');
+    el.className = `toast-msg ${type}`;
+    el.textContent = msg;
+    document.getElementById('toast').appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  }
+
+  // ── KEYBOARD ────────────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (!data.length) return;
+    if (editingCell) return;
+
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && e.key === 'z') { undo(); e.preventDefault(); return; }
+    if (mod && e.key === 's') { exportCSV(); e.preventDefault(); return; }
+    if (e.key === 'Escape' && !document.getElementById('exportModal').classList.contains('hidden')) {
+      closeExportModal(); return;
+    }
+    if (selectedRow < 0) return;
+
+    const moves = { ArrowUp:[-1,0], ArrowDown:[1,0], ArrowLeft:[0,-1], ArrowRight:[0,1] };
+    if (moves[e.key]) {
+      moveSelection(...moves[e.key]);
+      e.preventDefault();
+    } else if (e.key === 'Enter' || e.key === 'F2') {
+      const td = getCellTD(selectedRow, selectedCol);
+      if (td) { startEdit(selectedRow, selectedCol, td); e.preventDefault(); }
+    } else if (!mod && e.key.length === 1 && !e.altKey) {
+      // Start edit with typed char
+      const td = getCellTD(selectedRow, selectedCol);
+      if (td) {
+        startEdit(selectedRow, selectedCol, td);
+        const inp = td.querySelector('input');
+        if (inp) { inp.value = e.key; e.preventDefault(); }
+      }
+    }
+  });
+
+  // ── DRAG & DROP ─────────────────────────────────────────────────
+  const dz = document.getElementById('dropzone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) loadFile(file);
+  });
+
+  // Coord inputs — Enter key
+  document.getElementById('coordRow').addEventListener('keydown', e => { if (e.key === 'Enter') gotoCoord(); });
+  document.getElementById('coordCol').addEventListener('keydown', e => { if (e.key === 'Enter') gotoCoord(); });
+  document.getElementById('valueInput').addEventListener('keydown', e => { if (e.key === 'Enter') applyValue(); });
+  document.getElementById('exportFileName').addEventListener('keydown', e => { if (e.key === 'Enter') doExport(); if (e.key === 'Escape') closeExportModal(); });
+  // モーダル背景クリックで閉じる
+  document.getElementById('exportModal').addEventListener('click', e => { if (e.target === document.getElementById('exportModal')) closeExportModal(); });
+</script>
+</body>
+</html>
