@@ -447,6 +447,135 @@
         .res-green {
             color: #86EFAC;
         }
+
+        /* ========== Grid Editor Modal ========== */
+        .ge-overlay {
+            position: fixed; inset: 0; z-index: 500;
+            background: rgba(0,0,0,0.75);
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .ge-overlay.hidden { display: none; }
+        .ge-modal {
+            background: #161719;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            width: 90vw; max-width: 1000px;
+            height: 80vh; max-height: 700px;
+            display: flex; flex-direction: column;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+            overflow: hidden;
+        }
+        .ge-header {
+            display: flex; align-items: center; gap: 12px;
+            padding: 14px 20px;
+            background: #12141a;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            flex-shrink: 0;
+        }
+        .ge-header h3 {
+            font-family: 'Inter', monospace;
+            font-size: 13px; font-weight: 600;
+            color: var(--accent); margin: 0;
+            letter-spacing: 0.5px;
+        }
+        .ge-header .ge-info {
+            font-size: 11px; color: var(--text-muted);
+            font-family: 'Inter', monospace;
+        }
+        .ge-header .ge-actions { margin-left: auto; display: flex; gap: 8px; }
+        .ge-scroll {
+            flex: 1; overflow: auto; padding: 0;
+        }
+        .ge-scroll table {
+            border-collapse: collapse; width: 100%;
+        }
+        .ge-scroll th {
+            position: sticky; top: 0; z-index: 10;
+            background: #12141a;
+            border-bottom: 2px solid rgba(255,255,255,0.12);
+            border-right: 1px solid rgba(255,255,255,0.06);
+            font-size: 11px; font-weight: 600;
+            color: var(--accent); text-align: center;
+            padding: 8px 12px; white-space: nowrap;
+            font-family: 'Inter', monospace;
+        }
+        .ge-scroll td {
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            border-right: 1px solid rgba(255,255,255,0.05);
+            font-size: 12px; color: var(--text-color);
+            padding: 6px 12px; white-space: nowrap;
+            font-family: 'Inter', monospace;
+            cursor: cell;
+            transition: background 0.1s;
+        }
+        .ge-scroll td:hover { background: rgba(56,189,248,0.08); }
+        .ge-scroll td.ge-editing {
+            padding: 0;
+            outline: 2px solid var(--accent);
+            outline-offset: -2px;
+        }
+        .ge-scroll td.ge-editing input {
+            width: 100%; height: 100%;
+            background: rgba(56,189,248,0.1); border: none;
+            color: var(--accent); font-family: 'Inter', monospace;
+            font-size: 12px; padding: 6px 12px; outline: none;
+        }
+        .ge-scroll td.ge-modified {
+            position: relative;
+        }
+        .ge-scroll td.ge-modified::after {
+            content: ''; position: absolute; top: 3px; right: 3px;
+            width: 4px; height: 4px; border-radius: 50%;
+            background: #ff6b35;
+        }
+        .ge-scroll td.ge-row-label {
+            background: #12141a; color: var(--text-muted);
+            font-weight: 500; text-align: center; cursor: default;
+            border-right: 2px solid rgba(255,255,255,0.12);
+            position: sticky; left: 0; z-index: 5;
+        }
+        .ge-scroll tr.ge-section-row td {
+            background: rgba(56,189,248,0.06);
+            color: var(--accent); font-weight: 600;
+            font-size: 11px; text-transform: uppercase;
+            letter-spacing: 0.5px; cursor: default;
+            border-bottom: 2px solid rgba(56,189,248,0.15);
+        }
+        .ge-footer {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 20px;
+            background: #12141a;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            flex-shrink: 0;
+        }
+        .ge-footer .ge-filename-row {
+            display: flex; gap: 0;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 4px; overflow: hidden;
+        }
+        .ge-footer .ge-filename-row input {
+            background: rgba(0,0,0,0.3); border: none;
+            color: var(--text-color); font-family: 'Inter', monospace;
+            font-size: 12px; padding: 6px 10px; width: 160px; outline: none;
+        }
+        .ge-footer .ge-filename-row input:focus { background: rgba(56,189,248,0.08); }
+        .ge-footer .ge-filename-row select {
+            background: rgba(0,0,0,0.4); border: none;
+            border-left: 1px solid rgba(255,255,255,0.15);
+            color: var(--accent); font-family: 'Inter', monospace;
+            font-size: 12px; padding: 6px 8px; cursor: pointer; outline: none;
+        }
+        .ge-toast {
+            position: fixed; bottom: 24px; right: 24px; z-index: 600;
+            font-family: 'Inter', monospace; font-size: 12px;
+            padding: 10px 18px; border-radius: 6px;
+            background: #1e2024; border: 1px solid var(--accent);
+            color: var(--accent); pointer-events: none;
+            animation: geToastIn 0.2s ease, geToastOut 0.3s ease 2.5s forwards;
+        }
+        @keyframes geToastIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes geToastOut { to { opacity:0; transform:translateY(-4px); } }
     </style>
 </head>
 
@@ -467,6 +596,8 @@
             </div>
             <div style="width: 1px; height: 14px; background: rgba(255,255,255,0.2); margin: 0 4px;"></div>
             <button onclick="Camera.calculateSystemCenter(true)">[ Recenter View ]</button>
+            <div style="width: 1px; height: 14px; background: rgba(255,255,255,0.2); margin: 0 4px;"></div>
+            <button class="primary" onclick="GridEditor.open()" style="font-size:11px;">📥 Export Lens Data</button>
         </div>
 
         <canvas id="sim-canvas"></canvas>
@@ -529,6 +660,7 @@
             'Air': null,
             // Crown (低分散) ---
             'N-BK7':        { B1: 1.03961212,  B2: 0.231792344, B3: 1.01046945,  C1: 0.00600069867, C2: 0.0200179144, C3: 103.560653 },   // nd=1.5168, Vd=64.17
+            'S-BSL7':       { B1: 1.15150190,  B2: 0.118583612, B3: 1.26301359,  C1: 0.0105984130,  C2: -0.0118225190, C3: 129.617662 },   // nd=1.5163, Vd=64.14 (Ohara)
             'N-FK51A':      { B1: 0.971247817, B2: 0.216901417, B3: 0.904651666, C1: 0.00472301995, C2: 0.0153575612, C3: 168.68133  },   // nd=1.4866, Vd=84.47 (異常分散)
             'N-SK16':       { B1: 1.34317774,  B2: 0.241144399, B3: 0.994317969, C1: 0.00704687339, C2: 0.0229005,    C3: 92.7508526 },  // nd=1.6204, Vd=60.32
             'N-LAK9':       { B1: 1.46231905,  B2: 0.344239710, B3: 1.15508372,  C1: 0.00724270156, C2: 0.0243353131, C3: 85.4686868 },  // nd=1.6910, Vd=54.71
@@ -546,12 +678,40 @@
             'FusedSilica':  { B1: 0.6961663,   B2: 0.4079426,   B3: 0.8974794,   C1: 0.004679148,   C2: 0.01351206,   C3: 97.93400   }   // nd=1.4585, Vd=67.82 (Malitson 1965)
         };
 
+        // Modified Edlén equation for air refractive index
+        // Ref: Birch & Downs (1994), Metrologia 31(4) pp.315-316
+        // Standard conditions: 15°C, 101325 Pa, dry air
+        function getAirRefractiveIndex(wl_nm) {
+            const sigma = 1e3 / wl_nm;          // wavenumber in µm⁻¹
+            const sigma2 = sigma * sigma;
+            // Edlén (1966) dispersion formula updated by Birch & Downs (1994)
+            const nMinus1 = 1e-8 * (8342.54 + 2406147 / (130 - sigma2) + 15998 / (38.9 - sigma2));
+            return 1.0 + nMinus1;
+        }
+
+        // Sellmeier dispersion formula (3-term)
+        // High-precision implementation — no clamping, direct computation
+        // Ref: Schott Technical Information TIE-29 (2016)
         function getRefractiveIndex(matName, wl_nm) {
-            if (matName === 'Air' || !Catalogs[matName]) return 1.0;
-            const l = Math.max(0.2, wl_nm / 1000.0);
-            const l2 = l * l; const c = Catalogs[matName];
-            const n2 = 1.0 + (c.B1 * l2) / (l2 - c.C1) + (c.B2 * l2) / (l2 - c.C2) + (c.B3 * l2) / (l2 - c.C3);
-            return Math.sqrt(Math.max(1.0, n2));
+            if (!Catalogs[matName]) return getAirRefractiveIndex(wl_nm);
+            if (matName === 'Air') return getAirRefractiveIndex(wl_nm);
+
+            const lambda = wl_nm / 1000.0;       // nm → µm
+            const l2 = lambda * lambda;           // λ² in µm²
+            const c = Catalogs[matName];
+
+            // Sellmeier-1: n²(λ) = 1 + Σ Bi·λ²/(λ² - Ci)
+            const term1 = (c.B1 * l2) / (l2 - c.C1);
+            const term2 = (c.B2 * l2) / (l2 - c.C2);
+            const term3 = (c.B3 * l2) / (l2 - c.C3);
+            const n2 = 1.0 + term1 + term2 + term3;
+
+            // Validity check: n² must be > 1 in transmission range
+            if (n2 <= 1.0) {
+                console.warn(`Sellmeier: n² ≤ 1 for ${matName} @ ${wl_nm}nm (outside valid range)`);
+                return 1.0;
+            }
+            return Math.sqrt(n2);
         }
 
         // Convert wavelength to approximate RGB color for rendering
@@ -697,7 +857,8 @@
                 state.cache.zPos = zPos;
 
                 const rad = state.source.angle * Math.PI / 180;
-                const dx = Math.sin(rad), dz = Math.cos(rad);
+                // Y-Z plane simulation: dx=0, dy=sin(angle), dz=cos(angle)
+                const dirY = Math.sin(rad), dirZ = Math.cos(rad);
 
                 // LOD: Reduce rays during sliding for 60fps
                 let activeRays = state.source.rays;
@@ -715,11 +876,11 @@
                     const rays = [];
                     for (let i = 0; i < activeRays; i++) {
                         const y0 = activeRays > 1 ? state.source.y + (state.source.height / 2) - i * (state.source.height / (activeRays - 1)) : state.source.y;
-                        rays.push(new Ray(y0, state.source.z, dx * dz, dx * dz, dz, wObj.w, wObj.c));
+                        rays.push(new Ray(y0, state.source.z, 0, dirY, dirZ, wObj.w, wObj.c));
                     }
 
                     for (let ray of rays) {
-                        let currentN = 1.0;
+                        let currentN = getAirRefractiveIndex(wObj.w);  // Edlén air index
                         for (let i = 0; i < state.surfaces.length; i++) {
                             if (ray.terminated) break;
                             const surf = state.surfaces[i];
@@ -786,9 +947,16 @@
                     html += `<div class="result-item"><span>C (656nm) Red Focus:</span><span class="result-val res-red">${focalZ[656.3].toFixed(2)} mm</span></div>`;
                     html += `<div class="result-item" style="border:none; margin-top:8px;"><span>Axial Chromatic Aberration:</span><span class="result-val">${lca.toFixed(3)} mm</span></div>`;
                 } else if (!state.optics.rgbMode && focalZ[state.optics.wavelength]) {
-                    let n_bk7 = getRefractiveIndex('N-BK7', state.optics.wavelength).toFixed(4);
                     html += `<div class="result-item"><span>Marginal Focus Z Crossing:</span><span class="result-val">${focalZ[state.optics.wavelength].toFixed(2)} mm</span></div>`;
-                    html += `<div class="result-item" style="border:none; margin-top:8px;"><span style="color:var(--text-muted)">N-BK7 Refractive Index (n):</span><span class="result-val" style="color:var(--text-muted)">${n_bk7}</span></div>`;
+                    // Show refractive index for all non-Air materials in the system
+                    const shownMats = new Set();
+                    for (const s of state.surfaces) {
+                        if (s.materialName !== 'Air' && !shownMats.has(s.materialName)) {
+                            shownMats.add(s.materialName);
+                            const nVal = getRefractiveIndex(s.materialName, state.optics.wavelength).toFixed(6);
+                            html += `<div class="result-item" style="border:none; margin-top:4px;"><span style="color:var(--text-muted)">${s.materialName} n(${state.optics.wavelength.toFixed(2)}nm):</span><span class="result-val" style="color:var(--text-muted)">${nVal}</span></div>`;
+                        }
+                    }
                 } else {
                     html += `<div class="result-item"><span style="color:var(--text-muted)">Paraxial focal point not found.</span></div>`;
                 }
@@ -857,7 +1025,7 @@
                 const inp = document.getElementById(`inp_${objStr}_${prop}`);
                 const thb = document.getElementById(`thb_${objStr}_${prop}`);
                 const fil = document.getElementById(`fil_${objStr}_${prop}`);
-                if (inp) inp.value = val.toFixed(format);
+                if (inp && document.activeElement !== inp) inp.value = val.toFixed(format);
                 if (thb) thb.style.left = `${ratio * 100}%`;
                 if (fil) fil.style.width = `${ratio * 100}%`;
             },
@@ -994,11 +1162,11 @@
             if (state.optics.rgbMode) {
                 c.innerHTML = `<div style="font-size:11px; color:var(--text-muted); line-height:1.5;">Simulating Fraunhofer lines:<br><span style="color:#93C5FD">■ F-line (Blue): 486.1 nm</span><br><span style="color:#86EFAC">■ d-line (Green): 587.6 nm</span><br><span style="color:#FCA5A5">■ C-line (Red): 656.3 nm</span></div>`;
             } else {
-                c.innerHTML = PrecisionUI.createSlider('Wavelength (λ)', 'optics', 'wavelength', 380, 700, 'nm', 1.0, false, "spectrum");
+                c.innerHTML = PrecisionUI.createSlider('Wavelength (λ)', 'optics', 'wavelength', 380, 700, 'nm', 0.01, false, "spectrum");
             }
         }
 
-        window.addSurface = () => { let last = state.surfaces[state.surfaces.length - 1]; state.surfaces.splice(state.surfaces.length - 1, 0, new Surface(state.nextId++, 0, 10, 'BK7', last.semiAperture, 0)); buildUI(); triggerRecalc(); };
+        window.addSurface = () => { let last = state.surfaces[state.surfaces.length - 1]; state.surfaces.splice(state.surfaces.length - 1, 0, new Surface(state.nextId++, 0, 10, 'N-BK7', last.semiAperture, 0)); buildUI(); triggerRecalc(); };
         window.remSurf = (idx) => { if (state.surfaces.length > 1) { state.surfaces.splice(idx, 1); buildUI(); triggerRecalc(); } };
         window.updateSurfMat = (idx, val) => { state.surfaces[idx].materialName = val; triggerRecalc(); };
 
@@ -1092,7 +1260,285 @@
         window.addEventListener('resize', () => { const PR = window.devicePixelRatio; cvs.width = cvs.clientWidth * PR; cvs.height = cvs.clientHeight * PR; scheduleRender(); });
         document.addEventListener("DOMContentLoaded", () => { updateZoomUI(0.6); buildUI(); triggerRecalc(); });
 
+        // ========== Grid Editor (Integrated) ==========
+        const GridEditor = {
+            data: [],
+            originalData: [],
+            modifiedCells: new Set(),
+            history: [],
+            editingTd: null,
+            isOpen: false,
+
+            // Generate lens data table from current simulator state
+            generateLensTable() {
+                const rows = [];
+                const wl = state.optics.wavelength;
+                const zPos = getZPositions();
+
+                // Section: Surface Data
+                rows.push(['— SURFACE DATA —','','','','','','']);
+                rows.push(['#','Radius (mm)','Thickness (mm)','Material','Semi-Aperture (mm)','Decenter Y (mm)','n @ ' + wl.toFixed(0) + 'nm']);
+                state.surfaces.forEach((s, i) => {
+                    const n = getRefractiveIndex(s.materialName, wl);
+                    rows.push([
+                        (i+1).toString(),
+                        s.radius.toFixed(4),
+                        s.thickness.toFixed(4),
+                        s.materialName,
+                        s.semiAperture.toFixed(2),
+                        s.offsetY.toFixed(2),
+                        n.toFixed(6)
+                    ]);
+                });
+
+                // Section: Source
+                rows.push([]);
+                rows.push(['— SOURCE PARAMETERS —','','','','','','']);
+                rows.push(['Parameter','Value','Unit','','','','']);
+                rows.push(['Position Z', state.source.z.toFixed(2), 'mm','','','','']);
+                rows.push(['Offset Y', state.source.y.toFixed(2), 'mm','','','','']);
+                rows.push(['Aperture Height', state.source.height.toFixed(2), 'mm','','','','']);
+                rows.push(['Angle', state.source.angle.toFixed(2), 'deg','','','','']);
+                rows.push(['Ray Count', state.source.rays.toString(), '','','','','']);
+
+                // Section: Wavelength
+                rows.push([]);
+                rows.push(['— WAVELENGTH SETTINGS —','','','','','','']);
+                rows.push(['Mode', state.optics.rgbMode ? 'RGB (F/d/C lines)' : 'Monochromatic','','','','','']);
+                if (!state.optics.rgbMode) {
+                    rows.push(['Wavelength', wl.toFixed(1), 'nm','','','','']);
+                } else {
+                    rows.push(['F-line (Blue)', '486.1', 'nm','','','','']);
+                    rows.push(['d-line (Green)', '587.6', 'nm','','','','']);
+                    rows.push(['C-line (Red)', '656.3', 'nm','','','','']);
+                }
+
+                // Section: Analysis
+                rows.push([]);
+                rows.push(['— PARAXIAL ANALYSIS —','','','','','','']);
+                // Gather focal data from analysis-out
+                const analysisEl = document.getElementById('analysis-out');
+                if (analysisEl) {
+                    const items = analysisEl.querySelectorAll('.result-item');
+                    items.forEach(item => {
+                        const spans = item.querySelectorAll('span');
+                        if (spans.length >= 2) {
+                            rows.push([spans[0].textContent.trim(), spans[1].textContent.trim(),'','','','','']);
+                        }
+                    });
+                }
+
+                // Section: Z Positions
+                rows.push([]);
+                rows.push(['— SURFACE Z POSITIONS —','','','','','','']);
+                rows.push(['#','Z Position (mm)','','','','','']);
+                zPos.forEach((z, i) => {
+                    rows.push([(i+1).toString(), z.toFixed(4),'','','','','']);
+                });
+
+                // Normalize column count
+                const maxCols = Math.max(...rows.map(r => r.length));
+                return rows.map(r => {
+                    while (r.length < maxCols) r.push('');
+                    return r;
+                });
+            },
+
+            open() {
+                this.data = this.generateLensTable();
+                this.originalData = this.data.map(r => [...r]);
+                this.modifiedCells.clear();
+                this.history = [];
+                this.editingTd = null;
+                this.isOpen = true;
+                this.render();
+                document.getElementById('ge-overlay').classList.remove('hidden');
+            },
+
+            close() {
+                this.isOpen = false;
+                if (this.editingTd) this.commitEdit(this.editingTd);
+                document.getElementById('ge-overlay').classList.add('hidden');
+            },
+
+            render() {
+                const table = document.getElementById('ge-table');
+                const nRows = this.data.length;
+                const nCols = this.data[0].length;
+                let html = '<thead><tr>';
+                html += '<th style="min-width:40px;position:sticky;left:0;z-index:15;background:#12141a;border-right:2px solid rgba(255,255,255,0.12);"></th>';
+                for (let c = 0; c < nCols; c++) html += `<th>Col ${c}</th>`;
+                html += '</tr></thead><tbody>';
+
+                for (let r = 0; r < nRows; r++) {
+                    const row = this.data[r];
+                    const isSectionRow = row[0] && row[0].startsWith('—');
+                    if (isSectionRow) {
+                        html += `<tr class="ge-section-row"><td class="ge-row-label">${r}</td>`;
+                        html += `<td colspan="${nCols}">${row[0].replace(/—/g,'').trim()}</td></tr>`;
+                    } else if (row.every(c => c === '')) {
+                        html += `<tr><td class="ge-row-label">${r}</td>`;
+                        for (let c = 0; c < nCols; c++) html += `<td style="height:8px;"></td>`;
+                        html += '</tr>';
+                    } else {
+                        html += `<tr><td class="ge-row-label">${r}</td>`;
+                        for (let c = 0; c < nCols; c++) {
+                            const mod = this.modifiedCells.has(`${r},${c}`) ? ' ge-modified' : '';
+                            html += `<td class="${mod}" data-r="${r}" data-c="${c}" onclick="GridEditor.selectCell(this,${r},${c})" ondblclick="GridEditor.startEdit(this,${r},${c})">${row[c]}</td>`;
+                        }
+                        html += '</tr>';
+                    }
+                }
+                html += '</tbody>';
+                table.innerHTML = html;
+
+                document.getElementById('ge-info').textContent = `${nRows} rows × ${nCols} cols | ${this.modifiedCells.size} modified`;
+            },
+
+            selectCell(td, r, c) {
+                document.querySelectorAll('#ge-table td.ge-selected').forEach(el => el.classList.remove('ge-selected'));
+                td.classList.add('ge-selected');
+                td.style.outline = '2px solid var(--accent)';
+                td.style.outlineOffset = '-2px';
+            },
+
+            startEdit(td, r, c) {
+                if (this.editingTd && this.editingTd !== td) this.commitEdit(this.editingTd);
+                this.editingTd = td;
+                td.classList.add('ge-editing');
+                const val = td.textContent;
+                td.innerHTML = '';
+                const inp = document.createElement('input');
+                inp.value = val; inp.type = 'text';
+                td.appendChild(inp);
+                inp.focus(); inp.select();
+                inp.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') { this.commitEdit(td); e.preventDefault(); }
+                    else if (e.key === 'Escape') { td.classList.remove('ge-editing'); td.textContent = this.data[r][c]; this.editingTd = null; e.preventDefault(); }
+                });
+                inp.addEventListener('blur', () => { if (this.editingTd === td) this.commitEdit(td); });
+            },
+
+            commitEdit(td) {
+                if (!td || !td.classList.contains('ge-editing')) return;
+                const r = parseInt(td.dataset.r), c = parseInt(td.dataset.c);
+                const inp = td.querySelector('input');
+                const newVal = inp ? inp.value : td.textContent;
+                const oldVal = this.data[r][c];
+                td.classList.remove('ge-editing');
+                this.editingTd = null;
+                if (newVal !== oldVal) {
+                    this.history.push({ r, c, oldVal, newVal });
+                    this.data[r][c] = newVal;
+                    this.modifiedCells.add(`${r},${c}`);
+                    td.classList.add('ge-modified');
+                    document.getElementById('ge-info').textContent =
+                        `${this.data.length} rows × ${this.data[0].length} cols | ${this.modifiedCells.size} modified`;
+                }
+                td.textContent = this.data[r][c];
+            },
+
+            undo() {
+                if (!this.history.length) return;
+                const last = this.history.pop();
+                this.data[last.r][last.c] = last.oldVal;
+                if (this.data[last.r][last.c] === this.originalData[last.r][last.c]) {
+                    this.modifiedCells.delete(`${last.r},${last.c}`);
+                }
+                this.render();
+                this.showToast('変更を元に戻しました');
+            },
+
+            doExport() {
+                const base = document.getElementById('ge-filename').value.trim() || 'lens_data';
+                const ext = document.getElementById('ge-ext').value;
+                const outName = base + ext;
+                const sep = ext === '.csv' ? ',' : '\t';
+                const content = this.data.map(r => r.join(sep)).join('\n');
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = outName;
+                a.click();
+                URL.revokeObjectURL(url);
+                this.showToast(`"${outName}" を保存しました`);
+            },
+
+            loadFile(file) {
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const text = e.target.result;
+                    const line1 = text.split('\n')[0];
+                    const sep = line1.includes('\t') ? '\t' : ',';
+                    const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+                    while (lines.length && !lines[lines.length-1].trim()) lines.pop();
+                    if (!lines.length) { this.showToast('空のファイルです'); return; }
+                    this.data = lines.map(l => l.split(sep));
+                    const maxCols = Math.max(...this.data.map(r => r.length));
+                    this.data = this.data.map(r => { while(r.length < maxCols) r.push(''); return r; });
+                    this.originalData = this.data.map(r => [...r]);
+                    this.modifiedCells.clear();
+                    this.history = [];
+                    this.render();
+                    this.showToast(`"${file.name}" を読み込みました`);
+                };
+                reader.readAsText(file, 'UTF-8');
+            },
+
+            showToast(msg) {
+                const el = document.createElement('div');
+                el.className = 'ge-toast';
+                el.textContent = msg;
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 3000);
+            }
+        };
+
+        // Keyboard shortcut for Grid Editor
+        document.addEventListener('keydown', e => {
+            if (!GridEditor.isOpen) return;
+            const mod = e.ctrlKey || e.metaKey;
+            if (mod && e.key === 'z') { GridEditor.undo(); e.preventDefault(); }
+            if (mod && e.key === 's') { GridEditor.doExport(); e.preventDefault(); }
+            if (e.key === 'Escape' && !GridEditor.editingTd) { GridEditor.close(); }
+        });
+
     </script>
+
+    <!-- Grid Editor Modal -->
+    <div class="ge-overlay hidden" id="ge-overlay">
+        <div class="ge-modal">
+            <div class="ge-header">
+                <h3>📊 Lens Data Table</h3>
+                <span class="ge-info" id="ge-info"></span>
+                <div class="ge-actions">
+                    <label style="font-size:11px;cursor:pointer;padding:6px 10px;border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:var(--text-muted);font-family:'Inter',monospace;transition:0.2s;"
+                           onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';"
+                           onmouseout="this.style.borderColor='rgba(255,255,255,0.15)';this.style.color='var(--text-muted)';">
+                        📂 Load CSV
+                        <input type="file" accept=".csv,.txt" style="display:none" onchange="GridEditor.loadFile(this.files[0])">
+                    </label>
+                    <button onclick="GridEditor.undo()" style="font-size:11px;">↩ Undo</button>
+                    <button onclick="GridEditor.close()" style="font-size:11px;">✕ Close</button>
+                </div>
+            </div>
+            <div class="ge-scroll">
+                <table id="ge-table"></table>
+            </div>
+            <div class="ge-footer">
+                <div class="ge-filename-row">
+                    <input type="text" id="ge-filename" placeholder="lens_data" value="lens_data">
+                    <select id="ge-ext">
+                        <option value=".txt">.txt</option>
+                        <option value=".csv">.csv</option>
+                    </select>
+                </div>
+                <button class="primary" onclick="GridEditor.doExport()" style="font-size:11px;">💾 Save File</button>
+                <span style="margin-left:auto;font-size:10px;color:var(--text-muted);font-family:'Inter',monospace;">Ctrl+S = Save | Ctrl+Z = Undo | Esc = Close</span>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
