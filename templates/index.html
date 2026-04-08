@@ -642,7 +642,17 @@
                     checked onchange="toggleView('rays')"></div>
             <div class="toggle-group"><label for="dbg-axis">Render Optical Axis</label><input type="checkbox"
                     id="dbg-axis" checked onchange="toggleView('axis')"></div>
-
+<div class="section-title">Virtual Planes</div>
+<div class="panel-content" id="virtual-plane-panel">
+    <div style="display:flex; gap:8px; margin-bottom:8px;">
+        <input type="number" id="plane-z" placeholder="Z (mm)" style="width:80px; background:rgba(0,0,0,0.3); border:1px solid var(--panel-border); color:var(--text-color); padding:4px;" />
+        <button class="primary" onclick="addPlane()">Add Plane</button>
+    </div>
+    <table id="plane-table" style="width:100%; border-collapse:collapse; color:var(--text-color);">
+        <thead><tr><th style="padding:4px;">Z (mm)</th><th style="padding:4px;">Actions</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</div>
             <div class="section-title">Engine Performance</div>
             <div class="result-item"><span>Trace Compute:</span><span class="result-val res-accent" id="perf-trace">0
                     ms</span></div>
@@ -758,21 +768,22 @@
 
         // Single source of truth state
         const state = {
-            surfaces: [
-                new Surface(1, 60, 15, 'N-BK7', 30, 0),
-                new Surface(2, -50, 5, 'Air', 30, 0),
-                new Surface(3, -40, 6, 'N-F2', 30, 0),
-                new Surface(4, 200, 40, 'Air', 30, 0)
-            ],
-            source: { z: -100, y: 0, height: 30, angle: 0, rays: 21 },
-            optics: { rgbMode: false, wavelength: 550.0 }, // 380-700nm (可視光域)
-            nextId: 5,
-            viewFlags: { lenses: true, rays: true, axis: true, anchorLock: true },
-
-            cache: { rayBundles: [], zPos: [], centerZ: 0, centerY: 0 },
-            needsRecalc: true,
-            isInteracting: false // True during slider drag -> reduces ray count for performance if needed
-        };
+    surfaces: [
+        new Surface(1, 60, 15, 'N-BK7', 30, 0),
+        new Surface(2, -50, 5, 'Air', 30, 0),
+        new Surface(3, -40, 6, 'N-F2', 30, 0),
+        new Surface(4, 200, 40, 'Air', 30, 0)
+    ],
+    source: { z: -100, y: 0, height: 30, angle: 0, rays: 21 },
+    optics: { rgbMode: false, wavelength: 550.0 }, // 380-700nm (可視光域)
+    nextId: 5,
+    viewFlags: { lenses: true, rays: true, axis: true, anchorLock: true },
+    virtualPlanes: [], // {id, z}
+    nextPlaneId: 1,
+    cache: { rayBundles: [], zPos: [], centerZ: 0, centerY: 0 },
+    needsRecalc: true,
+    isInteracting: false // True during slider drag -> reduces ray count for performance if needed
+};
 
         function getZPositions() {
             let z = 0, pos = [z];
@@ -918,6 +929,18 @@
                             }
                             currentN = nextN;
                         }
+                // Virtual plane intersection
+                if (!ray.terminated) {
+                    const planeHits = this.intersectVirtualPlanes(ray);
+                    if (planeHits.length > 0) {
+                        const nearest = planeHits.reduce((a, b) => (a.t < b.t ? a : b));
+                        ray.x += ray.dx * nearest.t;
+                        ray.y += ray.dy * nearest.t;
+                        ray.z = nearest.point.z;
+                        ray.path.push([ray.x, ray.y, ray.z]);
+                        ray.terminated = true;
+                    }
+                }
                         if (!ray.terminated) { ray.advance(350); ray.path.push([ray.x, ray.y, ray.z]); }
                     }
                     bundles.push(rays);
@@ -1133,14 +1156,27 @@
         let isZoomDragging = false;
         function updateZoomUI(ratio) {
             ratio = Math.max(0, Math.min(1, ratio));
-            Camera.zoom = (0.1 * Math.pow(200, 1 - ratio)) * window.devicePixelRatio;
+            Camera.zoom = (0.1 * Math.pow(500, 1 - ratio)) * window.devicePixelRatio;
             if (zcThumb) zcThumb.style.left = `${ratio * 100}%`;
             if (zcVal) zcVal.innerText = (Camera.zoom / window.devicePixelRatio).toFixed(1) + 'x';
             scheduleRender();
         }
         if (zcTrack) zcTrack.addEventListener('mousedown', (e) => { isZoomDragging = true; e.stopPropagation(); document.body.style.cursor = 'ew-resize'; updateZoomUI((e.clientX - zcTrack.getBoundingClientRect().left) / zcTrack.clientWidth); });
 
-        cvs.addEventListener('wheel', (e) => { e.preventDefault(); }, { passive: false });
+        cvs.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    
+    // 現在のズーム比率(ratio)を逆算（2000は上記で設定した値に合わせる）
+    const maxVal = 2000;
+    let currentRatio = 1 - (Math.log(Camera.zoom / window.devicePixelRatio / 0.1) / Math.log(maxVal));
+    
+    // スクロール量に合わせて比率を増減
+    const delta = e.deltaY * 0.001; 
+    let newRatio = Math.max(0, Math.min(1, currentRatio + delta));
+    
+    // ズームを更新
+    updateZoomUI(newRatio);
+}, { passive: false });
         cvs.addEventListener('mousedown', (e) => { if ((e.button === 2 || e.code === 'Space' || e.button === 0) && !state.viewFlags.anchorLock) { trackState.isPanning = true; cvs.style.cursor = 'grabbing'; } });
         cvs.addEventListener('contextmenu', e => e.preventDefault());
 
