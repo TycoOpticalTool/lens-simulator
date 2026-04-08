@@ -955,6 +955,21 @@
                 const pSpan = document.getElementById('perf-trace');
                 if (pSpan) pSpan.innerText = (performance.now() - t0).toFixed(1) + ' ms';
             },
+            
+                        // Virtual plane intersection: returns array of {t, point} for each plane hit
+                        intersectVirtualPlanes(ray) {
+                                const hits = [];
+                                if (!state.virtualPlanes || state.virtualPlanes.length === 0) return hits;
+                                for (const plane of state.virtualPlanes) {
+                                                        if (Math.abs(ray.dz) < 1e-8) continue;
+                                                        const t = (plane.z - ray.z) / ray.dz;
+                                                        if (t > 1e-6) {
+                                                                                    hits.push({ t, point: { z: plane.z } });
+                                                        }
+                                }
+                                return hits;
+            },
+                        
 
             analyzeSystem(bundles, waveSet) {
                 const out = document.getElementById('analysis-out');
